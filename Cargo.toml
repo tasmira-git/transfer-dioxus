@@ -1,0 +1,19 @@
+[package]
+name = "transfer-dioxus"
+version = "0.1.0"
+authors = ["xxc <tasmira@qq.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.100"
+dioxus = { version = "0.7.1", features = ["router"] }
+futures-util = "0.3.31"
+walkdir = "2.5.0"
+
+[features]
+default = ["desktop"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
