@@ -4842,6 +4842,7 @@ dependencies = [
  "anyhow",
  "dioxus",
  "futures-util",
+ "tokio",
  "walkdir",
 ]
 

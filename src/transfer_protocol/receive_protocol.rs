@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::Context;
 use dioxus::hooks::UnboundedSender;
 
 use crate::transfer_protocol::TYPE_FILE;
@@ -19,29 +20,27 @@ impl ReceiveProtocol {
         }
     }
 
-    pub fn receive_file_or_dir(&mut self, save_path: &Path, log: &UnboundedSender<String>) {
+    pub fn receive_file_or_dir(
+        &mut self,
+        save_path: &Path,
+        log: &UnboundedSender<String>,
+    ) -> anyhow::Result<()> {
         loop {
             let Some(is_file) = self.receive_file_type() else {
                 break;
             };
 
-            if is_file {
-                // tracing::debug!("接收文件：");
-            } else {
-                // tracing::debug!("接收目录：");
-            }
-
-            let receive_path = self.receive_file_path();
-            // tracing::debug!("   {}", receive_path.display());
+            let receive_path = self.receive_file_path()?;
 
             if is_file {
                 let save_path = save_path.join(&receive_path);
-                self.receive_file(&save_path);
-                _ = log.unbounded_send(format!("成功接收{receive_path:?}"));
+                self.receive_file(&save_path)?;
+                log.unbounded_send(format!("成功接收{receive_path:?}"))?;
             } else {
-                create_dir_all(save_path.join(receive_path)).unwrap();
+                create_dir_all(save_path.join(receive_path))?;
             }
         }
+        Ok(())
     }
 
     fn receive_file_type(&mut self) -> Option<bool> {
@@ -59,30 +58,30 @@ impl ReceiveProtocol {
         }
     }
 
-    fn receive_file_path(&mut self) -> PathBuf {
+    fn receive_file_path(&mut self) -> anyhow::Result<PathBuf> {
         let mut len_buf = [0; 2];
-        self.reader.read_exact(&mut len_buf).unwrap();
+        self.reader.read_exact(&mut len_buf)?;
         let len = u16::from_be_bytes(len_buf);
 
         let mut path_buf = vec![0; len as usize];
-        self.reader.read_exact(&mut path_buf).unwrap();
+        self.reader.read_exact(&mut path_buf)?;
         let path = String::from_utf8_lossy(&path_buf).into_owned();
 
-        PathBuf::from(path)
+        Ok(PathBuf::from(path))
     }
 
-    fn receive_file(&mut self, save_path: &Path) {
+    fn receive_file(&mut self, save_path: &Path) -> anyhow::Result<()> {
         let mut size_buf = [0; 8];
-        self.reader.read_exact(&mut size_buf).unwrap();
+        self.reader.read_exact(&mut size_buf)?;
 
         let size = u64::from_be_bytes(size_buf);
 
-        create_dir_all(save_path.parent().unwrap()).unwrap();
-        let mut file = std::fs::File::create(save_path).unwrap();
+        create_dir_all(save_path.parent().with_context(|| "获取父路径失败")?)?;
+        let mut file = std::fs::File::create(save_path)?;
 
         let mut limited_reader = (&mut self.reader).take(size);
 
-        // tracing::debug!("   接收文件中，文件大小：{}", size_display(size));
-        std::io::copy(&mut limited_reader, &mut file).unwrap();
+        std::io::copy(&mut limited_reader, &mut file)?;
+        Ok(())
     }
 }

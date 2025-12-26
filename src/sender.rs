@@ -1,25 +1,22 @@
 use crate::transfer_protocol::send_protocol::SendProtocol;
+use anyhow::Context;
 use dioxus::hooks::UnboundedSender;
-use std::sync::atomic::Ordering::Relaxed;
 use std::{
+    fmt::Debug,
     net::{TcpStream, ToSocketAddrs},
     path::PathBuf,
-    sync::{atomic::AtomicBool, Arc},
+    time::Duration,
 };
 use walkdir::WalkDir;
 
 pub fn handle_send(
-    addr: impl ToSocketAddrs,
+    addr: impl ToSocketAddrs + Debug,
     send_path: PathBuf,
-    is_running: Arc<AtomicBool>,
     log_tx: UnboundedSender<String>,
     progress_tx: UnboundedSender<(f64, String)>,
 ) -> anyhow::Result<()> {
     if !send_path.exists() {
-        is_running.store(false, Relaxed);
-        _ = log_tx.unbounded_send("发送路径不存在".to_string());
         anyhow::bail!("发送路径不存在");
-        // return anyhow::anyhow!("发送路径不存在");
     }
 
     let total_size = WalkDir::new(&send_path)
@@ -29,40 +26,33 @@ pub fn handle_send(
         .map(|e| e.metadata().map(|m| m.len()).unwrap_or(0))
         .sum::<u64>();
 
-    let stream = match TcpStream::connect(addr) {
-        Ok(stream) => {
-            _ = log_tx.unbounded_send("连接到服务器成功".to_string());
-            stream
-        }
-        Err(e) => {
-            is_running.store(false, Relaxed);
-            _ = log_tx.unbounded_send(format!("连接到服务器失败：{}", e));
-            anyhow::bail!("连接到服务器失败");
-            // return;
-        }
-    };
+    let mut addr = addr
+        .to_socket_addrs()
+        .with_context(|| format!("{addr:?}不是一个有效的ip地址"))?;
+    let socket_addr = addr.next().context("没有ip地址")?;
+    let stream = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(3))?;
+    log_tx.unbounded_send("连接到服务器成功".to_string())?;
 
-    let root_dir = send_path.parent().unwrap();
+    let root_dir = send_path.parent().context("发送路径是根目录或空")?;
     let paths = WalkDir::new(&send_path);
 
     let mut stream = SendProtocol::new(stream, total_size, progress_tx);
 
-    _ = log_tx.unbounded_send("发送文件中...".to_string());
+    log_tx.unbounded_send("发送文件中...".to_string())?;
     for entry in paths {
-        let entry = entry.unwrap();
-        let path = entry.path();
-
-        stream.send_file_or_dir(path, root_dir, &log_tx);
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            stream.send_file_or_dir(path, root_dir, &log_tx)?;
+        }
     }
 
-    stream.flush();
+    stream.flush()?;
     stream.get_ref().send_process();
 
-    is_running.store(false, Relaxed);
-    _ = log_tx.unbounded_send(format!(
-        "发送任务完成，耗时: {:?}",
+    log_tx.unbounded_send(format!(
+        "任务完成，耗时: {:?}",
         stream.get_ref().total_time()
-    ));
+    ))?;
 
     Ok(())
 }

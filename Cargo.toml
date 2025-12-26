@@ -10,6 +10,7 @@ edition = "2021"
 anyhow = "1.0.100"
 dioxus = { version = "0.7.1", features = ["router"] }
 futures-util = "0.3.31"
+tokio = "1.48.0"
 walkdir = "2.5.0"
 
 [features]

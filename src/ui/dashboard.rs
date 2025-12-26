@@ -1,26 +1,25 @@
+use std::time::Duration;
+
 use crate::{
     app_state::{AppState, ReceiverState, SenderState},
     ui::Route,
 };
 use dioxus::prelude::*;
 use futures_util::StreamExt;
+use tokio::time::interval;
 
 #[component]
 pub fn DashboardLayout() -> Element {
     let current_route = use_route::<Route>();
 
-    let mut receiver_logs = Signal::new(Vec::new());
-    let receiver_tx = use_coroutine(move |mut rx: UnboundedReceiver<String>| async move {
-        while let Some(log) = rx.next().await {
-            receiver_logs.push(log);
-        }
+    let receiver_logs = Signal::new(Vec::new());
+    let receiver_tx = use_coroutine(move |rx: UnboundedReceiver<String>| async move {
+        handle_logs(rx, receiver_logs).await
     });
 
-    let mut sender_logs = Signal::new(Vec::new());
-    let sender_log_tx = use_coroutine(move |mut rx: UnboundedReceiver<String>| async move {
-        while let Some(log) = rx.next().await {
-            sender_logs.push(log);
-        }
+    let sender_logs = Signal::new(Vec::new());
+    let sender_log_tx = use_coroutine(move |rx: UnboundedReceiver<String>| async move {
+        handle_logs(rx, sender_logs).await
     });
     let mut send_progress = Signal::new((0.0, "0.00MB/s".to_string()));
     let sender_progress_tx =
@@ -63,6 +62,31 @@ pub fn DashboardLayout() -> Element {
                     },
                     to: Route::ReceiverPage,
                     "接收文件"
+                }
+            }
+        }
+    }
+}
+async fn handle_logs(mut rx: UnboundedReceiver<String>, mut logs: Signal<Vec<String>>) {
+    let mut buffer = Vec::new();
+    let mut tick = interval(Duration::from_millis(100));
+
+    loop {
+        tokio::select! {
+            Some(msg) = rx.next() => {
+                buffer.push(msg);
+
+                if buffer.len() > 1000 {
+                    logs.extend(buffer.drain(..));
+                }
+            }
+            _ = tick.tick() => {
+                if !buffer.is_empty() {
+                    logs.extend(buffer.drain(..));
+                }
+                if logs.len() > 500 {
+                    let remove_len = logs.len() - 500;
+                    logs.write().drain(0..remove_len);
                 }
             }
         }

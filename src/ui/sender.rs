@@ -68,7 +68,6 @@ pub fn SenderPage() -> Element {
                         input { class: "input input-info",
                             r#type: "text",
                             placeholder: "192.168.1.1",
-                            required: true,
                             value: "{ip}",
                             oninput: move |evt| ip.set(evt.value()),
                         }
@@ -78,7 +77,6 @@ pub fn SenderPage() -> Element {
                         input { class: "input input-info",
                             r#type: "number",
                             placeholder: "8000",
-                            required: true,
                             value: "{port}",
                             oninput: move |evt| {
                                 if let Ok(p) = evt.value().parse() {
@@ -98,7 +96,16 @@ pub fn SenderPage() -> Element {
                             let progress_tx = progress_tx();
 
                             std::thread::spawn(move || {
-                                _ = handle_send(addr, file, running, log_tx, progress_tx);
+                                 match handle_send(addr, file, log_tx.clone(), progress_tx) {
+                                     Ok(()) => {
+                                         running.store(false, Relaxed);
+                                         _ = log_tx.unbounded_send(format!("发送任务成功"));
+                                     }
+                                     Err(e) => {
+                                         running.store(false, Relaxed);
+                                         _ = log_tx.unbounded_send(format!("发送任务失败: {}", e));
+                                     }
+                                 }
                             });
                         },
                         if is_running.read().load(Relaxed) {

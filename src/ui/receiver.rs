@@ -1,8 +1,7 @@
-use std::rc::Rc;
-
-use dioxus::{html::geometry::PixelsVector2D, prelude::*};
-
 use crate::{app_state::AppState, receiver::handle_receive};
+use dioxus::{html::geometry::PixelsVector2D, prelude::*};
+use std::rc::Rc;
+use std::sync::atomic::Ordering::Relaxed;
 
 #[component]
 pub fn ReceiverPage() -> Element {
@@ -64,23 +63,32 @@ pub fn ReceiverPage() -> Element {
                     }
                 }
                 button {
-                    class: if is_running.read().load(std::sync::atomic::Ordering::Relaxed) {
+                    class: if is_running.read().load(Relaxed) {
                         "btn btn-error px-20 mt-6"
                     } else {
                         "btn btn-info px-20 mt-6"
                     },
                     onclick: move |_| {
-                        if is_running.read().load(std::sync::atomic::Ordering::Relaxed) {
-                            is_running.write().store(false, std::sync::atomic::Ordering::Relaxed);
+                        if is_running.read().load(Relaxed) {
+                            is_running.write().store(false, Relaxed);
                         } else {
-                            is_running.write().store(true, std::sync::atomic::Ordering::Relaxed);
-                            let running = is_running();
+                            is_running.write().store(true, Relaxed);
+                            let is_running = is_running();
                             let dir = dir();
-                            let tx = log_tx();
+                            let log_tx = log_tx();
                             let addr = format!("0.0.0.0:{port}");
 
                             std::thread::spawn(move || {
-                                handle_receive(addr, dir, tx, running);
+                                match handle_receive(addr, dir, log_tx.clone(), is_running.clone()) {
+                                    Ok(()) => {
+                                        is_running.store(false, Relaxed);
+                                        _ = log_tx.unbounded_send("接收服务结束".to_string());
+                                    }
+                                    Err(e) => {
+                                        is_running.store(false, Relaxed);
+                                        _ = log_tx.unbounded_send(format!("接收失败: {}", e));
+                                    }
+                                }
                             });
                         }
                     },
