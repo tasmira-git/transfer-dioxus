@@ -1,12 +1,12 @@
+use anyhow::Context;
+use dioxus::hooks::UnboundedSender;
+use rust_i18n::t;
 use std::{
     fs::create_dir_all,
     io::{BufReader, Read},
     net::TcpStream,
     path::{Path, PathBuf},
 };
-
-use anyhow::Context;
-use dioxus::hooks::UnboundedSender;
 
 use crate::transfer_protocol::TYPE_FILE;
 
@@ -35,7 +35,7 @@ impl ReceiveProtocol {
             if is_file {
                 let save_path = save_path.join(&receive_path);
                 self.receive_file(&save_path)?;
-                log.unbounded_send(format!("成功接收{receive_path:?}"))?;
+                log.unbounded_send(format!("{} : {receive_path:?}", t!("receive")))?;
             } else {
                 create_dir_all(save_path.join(receive_path))?;
             }

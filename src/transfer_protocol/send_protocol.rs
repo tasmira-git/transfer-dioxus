@@ -1,11 +1,13 @@
 use crate::transfer_protocol::{progress_writer::ProgressWriter, TYPE_DIR, TYPE_FILE};
 use anyhow::Context;
 use dioxus::hooks::UnboundedSender;
+use rust_i18n::t;
 use std::{
     io::{BufWriter, Write},
     net::TcpStream,
     path::Path,
 };
+
 type MonitorStream = ProgressWriter<TcpStream>;
 
 pub struct SendProtocol {
@@ -43,7 +45,7 @@ impl SendProtocol {
         self.send_path_name(&relative_path)?;
 
         if path.is_file() {
-            log_tx.unbounded_send(format!("发送{relative_path:?}"))?;
+            log_tx.unbounded_send(format!("{} : {relative_path:?}", t!("send")))?;
             self.send_file(path)?;
         }
         Ok(())

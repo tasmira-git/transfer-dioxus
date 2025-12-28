@@ -72,11 +72,11 @@ impl<W: Write> Write for ProgressWriter<W> {
 
         if self.monitor {
             self.bytes_send += n as u64;
+        }
 
-            if self.last_send_time.elapsed() >= Duration::from_millis(500) {
-                self.send_process();
-                self.last_send_time = Instant::now();
-            }
+        if self.last_send_time.elapsed() >= Duration::from_millis(500) {
+            self.send_process();
+            self.last_send_time = Instant::now();
         }
         Ok(n)
     }

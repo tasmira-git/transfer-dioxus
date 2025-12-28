@@ -1,13 +1,22 @@
 use dioxus::prelude::*;
 use std::{
+    fmt::Display,
     path::PathBuf,
     sync::{atomic::AtomicBool, Arc},
 };
 
-#[derive(Clone)]
-pub struct AppState {
-    pub receiver: ReceiverState,
-    pub sender: SenderState,
+#[derive(Clone, PartialEq)]
+pub enum Language {
+    English,
+    Chinese,
+}
+impl Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Language::English => write!(f, "English"),
+            Language::Chinese => write!(f, "中文"),
+        }
+    }
 }
 
 #[derive(Clone)]

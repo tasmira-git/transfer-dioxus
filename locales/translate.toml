@@ -1,0 +1,118 @@
+_version = 2
+
+[send]
+zh = "发送"
+en = "Send"
+
+[sending]
+zh = "发送中"
+en = "Sending"
+
+[receive]
+zh = "接收"
+en = "Receive"
+
+[language]
+zh = "Language"
+en = "语言"
+
+[theme]
+zh = "主题"
+en = "Theme"
+
+[settings]
+zh = "设置"
+en = "Settings"
+
+[close]
+zh = "关闭"
+en = "Close"
+
+[port]
+zh = "端口"
+en = "Port"
+
+[logs]
+zh = "日志"
+en = "Logs"
+
+[clear_logs]
+zh = "清空日志"
+en = "Clear logs"
+
+[speed]
+zh = "速度"
+en = "Speed"
+
+[enable_dir]
+zh = "启用目录"
+en = "Enable directory"
+
+[selected_file]
+zh = "选中的文件"
+en = "Selected file"
+
+[save_path]
+zh = "保存路径"
+en = "Save path"
+
+[start_server]
+zh = "启动服务"
+en = "Start server"
+
+[start_server_fail]
+zh = "启动服务失败"
+en = "Start server failed"
+
+[stop_server]
+zh = "停止服务"
+en = "Stop server"
+
+[change_port]
+zh = "尝试更改端口"
+en = "Try change port"
+
+[start_server_success]
+zh = "启动服务成功，监听"
+en = "Start server success, listening"
+
+[new_connection]
+zh = "新连接"
+en = "New connection"
+
+[receive_fail]
+zh = "接收失败"
+en = "Receive failed"
+
+[receive_over]
+zh = "接收完成"
+en = "Receive over"
+
+[send_fail]
+zh = "发送失败"
+en = "Send failed"
+
+[send_over]
+zh = "发送完成"
+en = "Send over"
+
+[no_selected_file]
+zh = "选中的文件不存在"
+en = "No selected file"
+
+[invalid_ip]
+zh = "无效IP"
+en = "Invalid IP"
+
+[connected]
+zh = "连接成功"
+en = "Connected"
+
+
+[time_taken]
+zh = "耗时"
+en = "Time taken"
+
+[drag_drop]
+zh = "拖放文件或文件夹到此"
+en = "Drag and drop file or folder here"

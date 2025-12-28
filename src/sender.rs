@@ -1,6 +1,7 @@
 use crate::transfer_protocol::send_protocol::SendProtocol;
 use anyhow::Context;
 use dioxus::hooks::UnboundedSender;
+use rust_i18n::t;
 use std::{
     fmt::Debug,
     net::{TcpStream, ToSocketAddrs},
@@ -16,7 +17,7 @@ pub fn handle_send(
     progress_tx: UnboundedSender<(f64, String)>,
 ) -> anyhow::Result<()> {
     if !send_path.exists() {
-        anyhow::bail!("发送路径不存在");
+        anyhow::bail!(t!("no_selected_file"));
     }
 
     let total_size = WalkDir::new(&send_path)
@@ -28,17 +29,16 @@ pub fn handle_send(
 
     let mut addr = addr
         .to_socket_addrs()
-        .with_context(|| format!("{addr:?}不是一个有效的ip地址"))?;
+        .with_context(|| format!("{} : {addr:?}", t!("invalid_ip")))?;
     let socket_addr = addr.next().context("没有ip地址")?;
     let stream = TcpStream::connect_timeout(&socket_addr, Duration::from_secs(3))?;
-    log_tx.unbounded_send("连接到服务器成功".to_string())?;
+    log_tx.unbounded_send(t!("connected").to_string())?;
 
     let root_dir = send_path.parent().context("发送路径是根目录或空")?;
     let paths = WalkDir::new(&send_path);
 
     let mut stream = SendProtocol::new(stream, total_size, progress_tx);
 
-    log_tx.unbounded_send("发送文件中...".to_string())?;
     for entry in paths {
         if let Ok(entry) = entry {
             let path = entry.path();
@@ -50,7 +50,8 @@ pub fn handle_send(
     stream.get_ref().send_process();
 
     log_tx.unbounded_send(format!(
-        "任务完成，耗时: {:?}",
+        "{} : {:?}",
+        t!("time_taken"),
         stream.get_ref().total_time()
     ))?;
 

@@ -1,18 +1,23 @@
-use crate::{app_state::AppState, receiver::handle_receive};
+use crate::app_state::{Language, ReceiverState};
+use crate::receiver::handle_receive;
 use dioxus::{html::geometry::PixelsVector2D, prelude::*};
+use rust_i18n::t;
 use std::rc::Rc;
 use std::sync::atomic::Ordering::Relaxed;
 
 #[component]
 pub fn ReceiverPage() -> Element {
-    let app_state = use_context::<AppState>();
-    let mut port = app_state.receiver.port;
-    let mut dir = app_state.receiver.dir;
-    let mut logs = app_state.receiver.logs;
-    let log_tx = app_state.receiver.log_tx;
-    let mut is_running = app_state.receiver.is_running;
+    let receiver_state = use_context::<ReceiverState>();
+    let mut port = receiver_state.port;
+    let mut dir = receiver_state.dir;
+    let mut logs = receiver_state.logs;
+    let log_tx = receiver_state.log_tx;
+    let mut is_running = receiver_state.is_running;
 
     let mut log_container = use_signal(|| None::<Rc<MountedData>>);
+
+    let language = use_context::<Signal<Language>>();
+    _ = language.read();
 
     use_effect(move || {
         logs.read();
@@ -33,11 +38,10 @@ pub fn ReceiverPage() -> Element {
     });
 
     rsx! {
-        div { class: "flex flex-col h-full gap-4",
-            div { class: "flex-1 min-h-0 flex flex-col items-center shadow rounded-lg bg-base-200",
+        div { class: "flex flex-col h-full gap-8",
+            div { class: "flex-1 min-h-0 flex flex-col items-center justify-center shadow rounded-lg bg-base-100",
                 fieldset { class: "fieldset w-2/5",
-                    legend { class: "fieldset-legend", "选择保存文件的路径" }
-                    input { class: "file-input file-input-info",
+                    input { class: "file-input",
                         r#type: "file",
                         directory: true,
                         onchange: move |e| {
@@ -47,11 +51,11 @@ pub fn ReceiverPage() -> Element {
 
                         }
                     }
-                    p { class: "label break-all whitespace-normal", "保存路径：{dir:?}"}
+                    p { class: "label break-all whitespace-normal", r#"{t!("save_path")} : {dir:?}"# }
                 }
                 fieldset { class: "fieldset",
-                    legend { class: "fieldset-legend", "监听端口" }
-                    input { class: "input input-info",
+                    legend { class: "fieldset-legend text-gray-500", r#"{t!("port")}"# }
+                    input { class: "input",
                         r#type: "number",
                         placeholder: "8000",
                         value: "{port}",
@@ -64,9 +68,9 @@ pub fn ReceiverPage() -> Element {
                 }
                 button {
                     class: if is_running.read().load(Relaxed) {
-                        "btn btn-error px-20 mt-6"
+                        "btn btn-error text-white px-20 mt-6"
                     } else {
-                        "btn btn-info px-20 mt-6"
+                        "btn bg-blue-500 hover:bg-blue-600 text-white px-20 mt-6"
                     },
                     onclick: move |_| {
                         if is_running.read().load(Relaxed) {
@@ -82,27 +86,27 @@ pub fn ReceiverPage() -> Element {
                                 match handle_receive(addr, dir, log_tx.clone(), is_running.clone()) {
                                     Ok(()) => {
                                         is_running.store(false, Relaxed);
-                                        _ = log_tx.unbounded_send("接收服务结束".to_string());
+                                        _ = log_tx.unbounded_send(t!("stop_server").to_string());
                                     }
                                     Err(e) => {
                                         is_running.store(false, Relaxed);
-                                        _ = log_tx.unbounded_send(format!("接收失败: {}", e));
+                                        _ = log_tx.unbounded_send(format!("{} : {}",t!("start_server_fail"), e));
                                     }
                                 }
                             });
                         }
                     },
                     if is_running.read().load(std::sync::atomic::Ordering::Relaxed) {
-                        "停止接收"
+                        r#"{t!("stop_server")}"#
                     } else {
-                        "开始接收"
+                        r#"{t!("start_server")}"#
                     }
                 }
             }
-            fieldset { class: "fieldset bg-base-100 border border-base-300 rounded-box h-1/3 px-4 flex",
-                legend { class: "fieldset-legend",
-                    "日志输出"
-                    div { class: "tooltip ", "data-tip": "清空日志",
+            div { class: "h-1/3 fieldset shadow rounded-box bg-base-100 px-4 flex relative",
+                div { class: "absolute -top-3 left-4 flex items-center gap-2",
+                    p { class: "font-bold text-gray-500", r#"{t!("logs")}"# }
+                    div { class: "tooltip ", "data-tip": r#"{t!("clear_logs")}"#,
                         button { class: "btn btn-xs btn-error btn-outline btn-square",
                             onclick: move |_| logs.clear(),
                             svg {
@@ -120,8 +124,7 @@ pub fn ReceiverPage() -> Element {
                         }
                     }
                 }
-
-                div { class: "overflow-y-auto flex-1",
+                div { class: "overflow-y-auto flex-1 mt-3",
                     onmounted: move |e| log_container.set(Some(e.data())),
                     for log in logs.iter() {
                         p { class: "break-all whitespace-pre-wrap",
