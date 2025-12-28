@@ -39,8 +39,8 @@ pub fn DashboardLayout() -> Element {
     });
     use_context_provider(|| ReceiverState::new(Signal::new(receiver_tx.tx()), receiver_logs));
 
-    use_hook(|| rust_i18n::set_locale("zh"));
-    let language = use_signal(|| Language::Chinese);
+    use_hook(|| rust_i18n::set_locale("en"));
+    let language = use_signal(|| Language::English);
     use_context_provider(|| language);
 
     _ = language.read();
