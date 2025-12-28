@@ -1,50 +1,50 @@
-# Development
+# Simple File Transfer (Dioxus)
 
-Your new bare-bones project includes minimal organization with a single `main.rs` file and a few assets.
+A lightweight, cross-platform file transfer utility built with **Rust** and **Dioxus**. This tool allows you to easily transfer files and directories across a Local Area Network (LAN) between Linux, Windows, and macOS. It also supports local loopback for testing purposes.
 
-```
-project/
-├─ assets/ # Any assets that are used by the app should be placed here
-├─ src/
-│  ├─ main.rs # main.rs is the entry point to your application and currently contains all components for the app
-├─ Cargo.toml # The Cargo.toml file defines the dependencies and feature flags for your project
-```
+## 🚀 Features
 
-### Automatic Tailwind (Dioxus 0.7+)
+* **Cross-Platform Support:** Seamlessly runs on Linux, Windows, and macOS.
+* **Easy Transfer:** Drag-and-drop support for individual files and entire folders.
+* **LAN Connectivity:** Transfer data directly between devices on the same local network.
+* **Visual Feedback:** Real-time transfer speed indicator and progress monitoring.
 
-As of Dioxus 0.7, there no longer is a need to manually install tailwind. Simply `dx serve` and you're good to go!
+## 🛠️ Getting Started
 
-Automatic tailwind is supported by checking for a file called `tailwind.css` in your app's manifest directory (next to Cargo.toml). To customize the file, use the dioxus.toml:
+### Prerequisites
+Make sure you have installed the **Rust** and **Dioxus** development environment.
 
-```toml
-[application]
-tailwind_input = "my.css"
-tailwind_output = "assets/out.css" # also customize the location of the out file!
-```
+### Installation & Running
 
-### Tailwind Manual Install
+1.  **Install Dioxus CLI:**
+    ```bash
+    cargo install dioxus-cli
+    ```
 
-To use tailwind plugins or manually customize tailwind, you can can install the Tailwind CLI and use it directly.
+2.  **Run the Project:**
+    Navigate to the project directory in your terminal and start the development server:
+    ```bash
+    dx serve
+    ```
 
-### Tailwind
-1. Install npm: https://docs.npmjs.com/downloading-and-installing-node-js-and-npm
-2. Install the Tailwind CSS CLI: https://tailwindcss.com/docs/installation/tailwind-cli
-3. Run the following command in the root of the project to start the Tailwind CSS compiler:
+## 📖 Usage Guide
 
-```bash
-npx @tailwindcss/cli -i ./input.css -o ./assets/tailwind.css --watch
-```
+The interface is divided into two main functions accessible via the sidebar:
 
-### Serving Your App
+* **Sending Files (Send Tab):**
 
-Run the following command in the root of your project to start developing with the default platform:
+![](./assets/send-page.png)
 
-```bash
-dx serve
-```
+    1.  Drag and drop a file/folder onto the area, or select one manually.
+    2.  Enter the receiver's target **IP Address**.
+    3.  Enter the target **Port** (default: `8000`).
+    4.  Click the **Send** button to start the transfer.
 
-To run for a different platform, use the `--platform platform` flag. E.g.
-```bash
-dx serve --platform desktop
-```
+* **Receiving Files (Receive Tab):**
 
+![](./assets/receive-page.png)
+
+    1.  Choose a **Save path** where incoming files will be stored.
+    2.  Set the **Port** to listen on (must match the sender's port).
+    3.  Click **Start server**.
+    4.  Incoming connections and transfer status will appear in the **Logs** section.
