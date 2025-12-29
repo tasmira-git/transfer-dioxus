@@ -94,10 +94,10 @@ pub fn SenderPage() -> Element {
                     }
                     p { class: "text-gray-500 break-all whitespace-normal", r#"{t!("selected_file")} : {file:?}"# }
                 }
-                div { class: "flex-1 flex flex-col p-4",
+                div { class: "flex-1 flex flex-col p-4 items-center justify-center",
                     fieldset { class: "fieldset ",
                         legend { class: "fieldset-legend text-gray-500", "IP" }
-                        input { class: "input",
+                        input { class: "input input-lg",
                             r#type: "text",
                             placeholder: "192.168.1.1",
                             value: "{ip}",
@@ -106,7 +106,7 @@ pub fn SenderPage() -> Element {
                     }
                     fieldset { class: "fieldset",
                         legend { class: "fieldset-legend text-gray-500", r#"{t!("port")}"# }
-                        input { class: "input",
+                        input { class: "input input-lg",
                             r#type: "number",
                             placeholder: "8000",
                             value: "{port}",
@@ -118,7 +118,7 @@ pub fn SenderPage() -> Element {
                         }
                     }
                     button {
-                        class: "btn bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white mt-8",
+                        class: "btn bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white mt-8 px-20",
                         disabled: is_running.read().load(Relaxed),
                         onclick: move |_| {
                             is_running.write().store(true, Relaxed);

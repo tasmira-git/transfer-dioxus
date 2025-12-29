@@ -40,7 +40,7 @@ pub fn ReceiverPage() -> Element {
     rsx! {
         div { class: "flex flex-col h-full gap-8",
             div { class: "flex-1 min-h-0 flex flex-col items-center justify-center shadow rounded-lg bg-base-100",
-                fieldset { class: "fieldset w-2/5",
+                fieldset { class: "fieldset",
                     input { class: "file-input",
                         r#type: "file",
                         directory: true,
@@ -55,7 +55,7 @@ pub fn ReceiverPage() -> Element {
                 }
                 fieldset { class: "fieldset",
                     legend { class: "fieldset-legend text-gray-500", r#"{t!("port")}"# }
-                    input { class: "input",
+                    input { class: "input input-lg",
                         r#type: "number",
                         placeholder: "8000",
                         value: "{port}",
