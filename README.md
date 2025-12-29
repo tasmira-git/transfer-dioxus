@@ -31,20 +31,20 @@ Make sure you have installed the **Rust** and **Dioxus** development environment
 
 The interface is divided into two main functions accessible via the sidebar:
 
-* **Sending Files (Send Tab):**
+### Sending Files (Send Tab)
 
 ![](./assets/send-page.png)
 
-    1.  Drag and drop a file/folder onto the area, or select one manually.
-    2.  Enter the receiver's target **IP Address**.
-    3.  Enter the target **Port** (default: `8000`).
-    4.  Click the **Send** button to start the transfer.
+1.  Drag and drop a file/folder onto the area, or select one manually.
+2.  Enter the receiver's target **IP Address**.
+3.  Enter the target **Port** (default: `8000`).
+4.  Click the **Send** button to start the transfer.
 
-* **Receiving Files (Receive Tab):**
+### Receiving Files (Receive Tab)
 
 ![](./assets/receive-page.png)
 
-    1.  Choose a **Save path** where incoming files will be stored.
-    2.  Set the **Port** to listen on (must match the sender's port).
-    3.  Click **Start server**.
-    4.  Incoming connections and transfer status will appear in the **Logs** section.
+1.  Choose a **Save path** where incoming files will be stored.
+2.  Set the **Port** to listen on (must match the sender's port).
+3.  Click **Start server**.
+4.  Incoming connections and transfer status will appear in the **Logs** section.
