@@ -116,3 +116,7 @@ en = "Time taken"
 [drag_drop]
 zh = "拖放文件或文件夹到此"
 en = "Drag and drop file or folder here"
+
+[port_validation]
+zh = "端口无效，请输入（0-65535）"
+en = "Invalid port, please input (0-65535)"

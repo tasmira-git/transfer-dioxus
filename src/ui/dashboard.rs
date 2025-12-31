@@ -1,5 +1,5 @@
 use crate::{
-    app_state::{Language, ReceiverState, SenderState},
+    app_state::{use_receiver_state, use_sender_state, Language},
     ui::Route,
 };
 use dioxus::prelude::*;
@@ -28,16 +28,16 @@ pub fn DashboardLayout() -> Element {
                 send_progress.set((percent, speed));
             }
         });
+    let sender_state = use_sender_state(
+        Signal::new(sender_log_tx.tx()),
+        sender_logs,
+        Signal::new(sender_progress_tx.tx()),
+        send_progress,
+    );
+    use_context_provider(|| sender_state);
 
-    use_context_provider(|| {
-        SenderState::new(
-            Signal::new(sender_log_tx.tx()),
-            sender_logs,
-            Signal::new(sender_progress_tx.tx()),
-            send_progress,
-        )
-    });
-    use_context_provider(|| ReceiverState::new(Signal::new(receiver_tx.tx()), receiver_logs));
+    let receiver_state = use_receiver_state(Signal::new(receiver_tx.tx()), receiver_logs);
+    use_context_provider(|| receiver_state);
 
     use_hook(|| rust_i18n::set_locale("en"));
     let language = use_signal(|| Language::English);
@@ -50,11 +50,7 @@ pub fn DashboardLayout() -> Element {
             div { class: "w-18 flex flex-col bg-base-100 shadow items-center pb-4",
                 div { class: "flex-1 flex flex-col justify-evenly ",
                     Link {
-                        class: if current_route == Route::SenderPage {
-                            "btn btn-ghost btn-square btn-xl flex flex-col bg-blue-500/10 text-blue-500"
-                        } else {
-                            "btn btn-ghost btn-square btn-xl flex flex-col text-gray-500"
-                        },
+                        class: if current_route == Route::SenderPage { "btn btn-ghost btn-square btn-xl flex flex-col bg-blue-500/10 text-blue-500" } else { "btn btn-ghost btn-square btn-xl flex flex-col text-gray-500" },
                         to: Route::SenderPage,
                         svg {
                             class: "lucide lucide-send-icon lucide-send",
@@ -73,11 +69,7 @@ pub fn DashboardLayout() -> Element {
                         span { class: "text-xs", r#"{t!("send")}"# }
                     }
                     Link {
-                        class: if current_route == Route::ReceiverPage {
-                            "btn btn-ghost btn-square btn-xl flex flex-col bg-blue-500/10 text-blue-500"
-                        } else {
-                            "btn btn-ghost btn-square btn-xl flex flex-col text-gray-500"
-                        },
+                        class: if current_route == Route::ReceiverPage { "btn btn-ghost btn-square btn-xl flex flex-col bg-blue-500/10 text-blue-500" } else { "btn btn-ghost btn-square btn-xl flex flex-col text-gray-500" },
                         to: Route::ReceiverPage,
                         svg {
                             class: "lucide lucide-download-icon lucide-download",
@@ -97,11 +89,9 @@ pub fn DashboardLayout() -> Element {
                         span { class: "text-xs", r#"{t!("receive")}"# }
                     }
                 }
-                Settings { }
+                Settings {}
             }
-            div { class: "flex-1 py-4 pr-8",
-                Outlet::<Route> {}
-            }
+            div { class: "flex-1 py-4 pr-8", Outlet::<Route> {} }
         }
     }
 }
@@ -141,7 +131,8 @@ fn Settings() -> Element {
     };
 
     rsx! {
-        button { class: "group cursor-pointer p-1",
+        button {
+            class: "group cursor-pointer p-1",
             onclick: move |_| is_open.set(true),
             svg {
                 class: "stroke-2 group-hover:stroke-3",
@@ -157,8 +148,7 @@ fn Settings() -> Element {
                 circle { cx: "12", cy: "12", r: "3" }
             }
         }
-        dialog {
-            class: if is_open() { "modal modal-open" } else { "modal" },
+        dialog { class: if is_open() { "modal modal-open" } else { "modal" },
 
             div { class: "modal-box overflow-visible flex flex-col items-center gap-4",
                 h1 { class: "text-4xl font-bold self-start mb-4", r#"{t!("settings")}"# }
@@ -181,34 +171,51 @@ fn Settings() -> Element {
                                 path { d: "m6 9 6 6 6-6" }
                             }
                         }
-                        ul { class: "dropdown-content menu bg-base-100 rounded-box shadow z-1 p-2",
+                        ul {
+                            class: "dropdown-content menu bg-base-100 rounded-box shadow z-1 p-2",
                             tabindex: "-1",
                             li {
-                                input { class: "theme-controller btn btn-sm btn-ghost", r#type: "radio", name: "theme",
+                                input {
+                                    class: "theme-controller btn btn-sm btn-ghost",
+                                    r#type: "radio",
+                                    name: "theme",
                                     onchange: change_theme,
                                     checked: *theme.read() == "light",
-                                    aria_label: "Light",value: "light"
+                                    aria_label: "Light",
+                                    value: "light",
                                 }
                             }
                             li {
-                                input { class: "theme-controller btn btn-sm btn-ghost", r#type: "radio", name: "theme",
+                                input {
+                                    class: "theme-controller btn btn-sm btn-ghost",
+                                    r#type: "radio",
+                                    name: "theme",
                                     onchange: change_theme,
                                     checked: *theme.read() == "dark",
-                                    aria_label: "Dark",value: "dark"
+                                    aria_label: "Dark",
+                                    value: "dark",
                                 }
                             }
                             li {
-                                input { class: "theme-controller btn btn-sm btn-ghost", r#type: "radio", name: "theme",
+                                input {
+                                    class: "theme-controller btn btn-sm btn-ghost",
+                                    r#type: "radio",
+                                    name: "theme",
                                     onchange: change_theme,
                                     checked: *theme.read() == "cupcake",
-                                    aria_label: "Cupcake",value: "cupcake"
+                                    aria_label: "Cupcake",
+                                    value: "cupcake",
                                 }
                             }
                             li {
-                                input { class: "theme-controller btn btn-sm btn-ghost", r#type: "radio", name: "theme",
+                                input {
+                                    class: "theme-controller btn btn-sm btn-ghost",
+                                    r#type: "radio",
+                                    name: "theme",
                                     onchange: change_theme,
                                     checked: *theme.read() == "lemonade",
-                                    aria_label: "Lemonade",value: "lemonade"
+                                    aria_label: "Lemonade",
+                                    value: "lemonade",
                                 }
                             }
                         }
@@ -233,32 +240,42 @@ fn Settings() -> Element {
                                 path { d: "m6 9 6 6 6-6" }
                             }
                         }
-                        ul { class: "dropdown-content menu bg-base-100 rounded-box shadow z-1 p-2",
+                        ul {
+                            class: "dropdown-content menu bg-base-100 rounded-box shadow z-1 p-2",
                             tabindex: "-1",
                             li {
-                                input { class: "btn btn-sm btn-ghost", r#type: "radio", name: "language",
+                                input {
+                                    class: "btn btn-sm btn-ghost",
+                                    r#type: "radio",
+                                    name: "language",
                                     onchange: move |e| {
                                         rust_i18n::set_locale(&e.value());
                                         language.set(Language::Chinese);
                                     },
                                     checked: *language.read() == Language::Chinese,
-                                    aria_label: "{Language::Chinese}", value: "zh",
+                                    aria_label: "{Language::Chinese}",
+                                    value: "zh",
                                 }
                             }
                             li {
-                                input { class: "btn btn-sm btn-ghost", r#type: "radio", name: "language",
+                                input {
+                                    class: "btn btn-sm btn-ghost",
+                                    r#type: "radio",
+                                    name: "language",
                                     onchange: move |e| {
                                         rust_i18n::set_locale(&e.value());
                                         language.set(Language::English);
                                     },
                                     checked: *language.read() == Language::English,
-                                    aria_label: "{Language::English}", value: "en"
+                                    aria_label: "{Language::English}",
+                                    value: "en",
                                 }
                             }
                         }
                     }
                 }
-                button { class: "btn bg-blue-500 hover:bg-blue-600 text-white self-end mt-4",
+                button {
+                    class: "btn btn-info self-end mt-4",
                     onclick: move |_| is_open.set(false),
                     r#"{t!("close")}"#
                 }

@@ -15,8 +15,8 @@ pub fn SenderPage() -> Element {
 
     let sender_state = use_context::<SenderState>();
     let mut enable_directory = sender_state.enable_directory;
-    let mut ip = sender_state.ip;
-    let mut port = sender_state.port;
+    let mut ip_field = sender_state.ip_field;
+    let mut port_field = sender_state.port_field;
     let mut file = sender_state.file;
     let mut is_running = sender_state.is_running;
     let log_tx = sender_state.log_tx;
@@ -52,11 +52,7 @@ pub fn SenderPage() -> Element {
             div { class: "flex-1 flex gap-4 min-h-0 shadow rounded-box bg-base-100",
                 div { class: "flex-1 flex flex-col justify-center gap-2 p-4",
                     div {
-                        class: if *is_hovered.read() {
-                            "rounded-box shadow flex justify-center items-center h-16 text-gray-500 bg-blue-300"
-                        } else {
-                            "rounded-box shadow flex justify-center items-center h-16 text-gray-500 bg-base-200"
-                        },
+                        class: if *is_hovered.read() { "rounded-box flex justify-center items-center border border-dashed border-info h-16 bg-blue-300" } else { "rounded-box flex justify-center items-center border border-dashed border-info h-16" },
                         ondragover: move |e| {
                             e.prevent_default();
                             is_hovered.set(true)
@@ -69,22 +65,29 @@ pub fn SenderPage() -> Element {
                                 file.set(f.path());
                             }
                         },
-                        r#"{t!("drag_drop")}"#
+                        p { class: "text-gray-500", r#"{t!("drag_drop")}"# }
                     }
                     div { class: "divider", "OR" }
                     fieldset { class: "fieldset ",
-                        input { class: "file-input",
+                        input {
+                            class: "file-input",
                             r#type: "file",
                             directory: enable_directory,
                             onchange: move |e| {
-                               for f in e.files() {
-                                   file.set(f.path());
+                                for f in e.files() {
+                                    file.set(f.path());
                                 }
-                            }
+                            },
                         }
                         div { class: "flex items-center gap-2 ",
-                            label { class: "text-lg text-gray-600", r#for: "directory-upload", r#"{t!("enable_dir")}"# }
-                            input { class: "checkbox border-blue-500 text-blue-500 checkbox-md",
+                            label {
+                                class: "text-lg text-gray-600",
+                                r#for: "directory-upload",
+                                r#"{t!("enable_dir")}"#
+                            }
+                            input {
+                                class: "checkbox checkbox-info checkbox-md",
+                                // class: "checkbox border-blue-500 text-blue-500 checkbox-md",
                                 r#type: "checkbox",
                                 id: "directory-upload",
                                 checked: enable_directory,
@@ -92,54 +95,66 @@ pub fn SenderPage() -> Element {
                             }
                         }
                     }
-                    p { class: "text-gray-500 break-all whitespace-normal", r#"{t!("selected_file")} : {file:?}"# }
+                    p { class: "text-gray-500 break-all whitespace-normal",
+                        r#"{t!("selected_file")} : {file:?}"#
+                    }
                 }
                 div { class: "flex-1 flex flex-col p-4 items-center justify-center",
                     fieldset { class: "fieldset ",
                         legend { class: "fieldset-legend text-gray-500", "IP" }
-                        input { class: "input input-lg",
+                        input {
+                            class: "input input-lg",
                             r#type: "text",
                             placeholder: "192.168.1.1",
-                            value: "{ip}",
-                            oninput: move |evt| ip.set(evt.value()),
+                            value: "{ip_field.raw_value}",
+                            oninput: ip_field.oninput,
+                            onmounted: move |e| ip_field.mounted.set(Some(e)),
                         }
+                        p { class: "text-error", {ip_field.error} }
                     }
                     fieldset { class: "fieldset",
                         legend { class: "fieldset-legend text-gray-500", r#"{t!("port")}"# }
-                        input { class: "input input-lg",
+                        input {
+                            class: "input input-lg",
                             r#type: "number",
                             placeholder: "8000",
-                            value: "{port}",
-                            oninput: move |evt| {
-                                if let Ok(p) = evt.value().parse() {
-                                    port.set(p);
-                                }
-                            }
+                            value: "{port_field.raw_value}",
+                            oninput: port_field.oninput,
+                            onmounted: move |e| port_field.mounted.set(Some(e)),
                         }
+                        p { class: "text-error", {port_field.error} }
                     }
                     button {
-                        class: "btn bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white mt-8 px-20",
+                        class: "btn btn-info mt-8 px-20",
                         disabled: is_running.read().load(Relaxed),
-                        onclick: move |_| {
+                        onclick: move |_| async move {
+                            if ip_field.error.read().is_some() {
+                                ip_field.focus().await;
+                                return;
+                            }
+                            if port_field.error.read().is_some() {
+                                port_field.focus().await;
+                                return;
+                            }
+
                             is_running.write().store(true, Relaxed);
                             progress.set((0.0, "0.00MB/s".to_string()));
                             let running = is_running();
-                            let addr = format!("{ip}:{port}");
+                            let addr = format!("{}:{}", ip_field.value, port_field.value);
                             let file = file();
                             let log_tx = log_tx();
                             let progress_tx = progress_tx();
-
                             std::thread::spawn(move || {
-                                 match handle_send(addr, file, log_tx.clone(), progress_tx) {
-                                     Ok(()) => {
-                                         running.store(false, Relaxed);
-                                         _ = log_tx.unbounded_send(t!("send_over").to_string());
-                                     }
-                                     Err(e) => {
-                                         running.store(false, Relaxed);
-                                         _ = log_tx.unbounded_send(format!("{} : {}", t!("send_fail"), e));
-                                     }
-                                 }
+                                match handle_send(addr, file, log_tx.clone(), progress_tx) {
+                                    Ok(()) => {
+                                        running.store(false, Relaxed);
+                                        _ = log_tx.unbounded_send(t!("send_over").to_string());
+                                    }
+                                    Err(e) => {
+                                        running.store(false, Relaxed);
+                                        _ = log_tx.unbounded_send(format!("{} : {}", t!("send_fail"), e));
+                                    }
+                                }
                             });
                         },
                         if is_running.read().load(Relaxed) {
@@ -165,8 +180,11 @@ pub fn SenderPage() -> Element {
                 div { class: "flex-1 fieldset shadow rounded-box bg-base-100 px-4 flex relative",
                     div { class: "absolute -top-3 left-4 flex items-center gap-2",
                         p { class: "font-bold text-gray-500", r#"{t!("logs")}"# }
-                        div { class: "tooltip ", "data-tip": r#"{t!("clear_logs")}"#,
-                            button { class: "btn btn-xs btn-error btn-outline btn-square",
+                        div {
+                            class: "tooltip ",
+                            "data-tip": r#"{t!("clear_logs")}"#,
+                            button {
+                                class: "btn btn-xs btn-error btn-outline btn-square",
                                 onclick: move |_| logs.clear(),
                                 svg {
                                     class: "size-4",
@@ -183,12 +201,11 @@ pub fn SenderPage() -> Element {
                             }
                         }
                     }
-                    div { class: "overflow-y-auto flex-1 mt-3",
+                    div {
+                        class: "overflow-y-auto flex-1 mt-3",
                         onmounted: move |e| log_container.set(Some(e.data())),
                         for log in logs.iter() {
-                            p { class: "break-all whitespace-pre-wrap",
-                                "{log}"
-                            }
+                            p { class: "break-all whitespace-pre-wrap", "{log}" }
                         }
                     }
                 }

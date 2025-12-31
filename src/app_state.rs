@@ -1,6 +1,9 @@
+use crate::form_field::{use_form_field, FormField};
 use dioxus::prelude::*;
+use rust_i18n::t;
 use std::{
     fmt::Display,
+    net::{IpAddr, Ipv4Addr},
     path::PathBuf,
     sync::{atomic::AtomicBool, Arc},
 };
@@ -21,28 +24,31 @@ impl Display for Language {
 
 #[derive(Clone)]
 pub struct ReceiverState {
-    pub port: Signal<u16>,
+    pub port_field: FormField<u16>,
     pub dir: Signal<PathBuf>,
     pub logs: Signal<Vec<String>>,
     pub is_running: Signal<Arc<AtomicBool>>,
     pub log_tx: Signal<UnboundedSender<String>>,
 }
-impl ReceiverState {
-    pub fn new(log_tx: Signal<UnboundedSender<String>>, logs: Signal<Vec<String>>) -> Self {
-        Self {
-            port: Signal::new(8000),
-            dir: Signal::new(std::fs::canonicalize(".").unwrap()),
-            logs,
-            is_running: Signal::new(Arc::new(AtomicBool::new(false))),
-            log_tx,
-        }
+pub fn use_receiver_state(
+    log_tx: Signal<UnboundedSender<String>>,
+    logs: Signal<Vec<String>>,
+) -> ReceiverState {
+    let port_field = use_form_field(8000_u16, |s| s.parse().map_err(|_| t!("port_validation")));
+
+    ReceiverState {
+        port_field,
+        dir: Signal::new(std::fs::canonicalize(".").unwrap()),
+        logs,
+        is_running: Signal::new(Arc::new(AtomicBool::new(false))),
+        log_tx,
     }
 }
 
 #[derive(Clone)]
 pub struct SenderState {
-    pub ip: Signal<String>,
-    pub port: Signal<u16>,
+    pub ip_field: FormField<IpAddr>,
+    pub port_field: FormField<u16>,
     pub enable_directory: Signal<bool>,
     pub file: Signal<PathBuf>,
     pub logs: Signal<Vec<String>>,
@@ -51,23 +57,27 @@ pub struct SenderState {
     pub progress_tx: Signal<UnboundedSender<(f64, String)>>,
     pub progress: Signal<(f64, String)>,
 }
-impl SenderState {
-    pub fn new(
-        log_tx: Signal<UnboundedSender<String>>,
-        logs: Signal<Vec<String>>,
-        progress_tx: Signal<UnboundedSender<(f64, String)>>,
-        progress: Signal<(f64, String)>,
-    ) -> Self {
-        Self {
-            ip: Signal::new("127.0.0.1".to_string()),
-            port: Signal::new(8000),
-            enable_directory: Signal::new(false),
-            file: Signal::new(PathBuf::new()),
-            logs,
-            is_running: Signal::new(Arc::new(AtomicBool::new(false))),
-            log_tx,
-            progress_tx,
-            progress,
-        }
+
+pub fn use_sender_state(
+    log_tx: Signal<UnboundedSender<String>>,
+    logs: Signal<Vec<String>>,
+    progress_tx: Signal<UnboundedSender<(f64, String)>>,
+    progress: Signal<(f64, String)>,
+) -> SenderState {
+    let port_field = use_form_field(8000_u16, |s| s.parse().map_err(|_| t!("port_validation")));
+    let ip_field = use_form_field(Ipv4Addr::LOCALHOST.into(), |s| {
+        s.parse().map_err(|_| t!("invalid_ip"))
+    });
+
+    SenderState {
+        ip_field,
+        port_field,
+        enable_directory: use_signal(|| false),
+        file: use_signal(PathBuf::new),
+        logs,
+        is_running: use_signal(|| Arc::new(AtomicBool::new(false))),
+        log_tx,
+        progress_tx,
+        progress,
     }
 }

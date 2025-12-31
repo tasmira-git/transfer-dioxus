@@ -8,7 +8,7 @@ use std::sync::atomic::Ordering::Relaxed;
 #[component]
 pub fn ReceiverPage() -> Element {
     let receiver_state = use_context::<ReceiverState>();
-    let mut port = receiver_state.port;
+    let mut port_field = receiver_state.port_field;
     let mut dir = receiver_state.dir;
     let mut logs = receiver_state.logs;
     let log_tx = receiver_state.log_tx;
@@ -41,7 +41,8 @@ pub fn ReceiverPage() -> Element {
         div { class: "flex flex-col h-full gap-8",
             div { class: "flex-1 min-h-0 flex flex-col items-center justify-center shadow rounded-lg bg-base-100",
                 fieldset { class: "fieldset",
-                    input { class: "file-input",
+                    input {
+                        class: "file-input",
                         r#type: "file",
                         directory: true,
                         onchange: move |e| {
@@ -49,30 +50,31 @@ pub fn ReceiverPage() -> Element {
                                 dir.set(file.path());
                             }
 
-                        }
+                        },
                     }
                     p { class: "label break-all whitespace-normal", r#"{t!("save_path")} : {dir:?}"# }
                 }
                 fieldset { class: "fieldset",
                     legend { class: "fieldset-legend text-gray-500", r#"{t!("port")}"# }
-                    input { class: "input input-lg",
+                    input {
+                        class: "input input-lg",
                         r#type: "number",
                         placeholder: "8000",
-                        value: "{port}",
-                        oninput: move |e| {
-                            if let Ok(p) = e.value().parse() {
-                                port.set(p);
-                            }
-                        }
+                        value: "{port_field.raw_value}",
+                        oninput: port_field.oninput,
+                        onmounted: move |e| port_field.mounted.set(Some(e)),
                     }
+                    p { class: "text-error", {port_field.error} }
+                
                 }
                 button {
-                    class: if is_running.read().load(Relaxed) {
-                        "btn btn-error text-white px-20 mt-6"
-                    } else {
-                        "btn bg-blue-500 hover:bg-blue-600 text-white px-20 mt-6"
-                    },
-                    onclick: move |_| {
+                    class: if is_running.read().load(Relaxed) { "btn btn-error text-white px-20 mt-6" } else { "btn btn-info px-20 mt-6" },
+                    onclick: move |_| async move {
+                        if port_field.error.read().is_some() {
+                            port_field.focus().await;
+                            return;
+                        }
+
                         if is_running.read().load(Relaxed) {
                             is_running.write().store(false, Relaxed);
                         } else {
@@ -80,7 +82,7 @@ pub fn ReceiverPage() -> Element {
                             let is_running = is_running();
                             let dir = dir();
                             let log_tx = log_tx();
-                            let addr = format!("0.0.0.0:{port}");
+                            let addr = format!("0.0.0.0:{}", port_field.value);
 
                             std::thread::spawn(move || {
                                 match handle_receive(addr, dir, log_tx.clone(), is_running.clone()) {
@@ -90,7 +92,10 @@ pub fn ReceiverPage() -> Element {
                                     }
                                     Err(e) => {
                                         is_running.store(false, Relaxed);
-                                        _ = log_tx.unbounded_send(format!("{} : {}",t!("start_server_fail"), e));
+                                        _ = log_tx
+                                            .unbounded_send(
+                                                format!("{} : {}", t!("start_server_fail"), e),
+                                            );
                                     }
                                 }
                             });
@@ -106,8 +111,11 @@ pub fn ReceiverPage() -> Element {
             div { class: "h-1/3 fieldset shadow rounded-box bg-base-100 px-4 flex relative",
                 div { class: "absolute -top-3 left-4 flex items-center gap-2",
                     p { class: "font-bold text-gray-500", r#"{t!("logs")}"# }
-                    div { class: "tooltip ", "data-tip": r#"{t!("clear_logs")}"#,
-                        button { class: "btn btn-xs btn-error btn-outline btn-square",
+                    div {
+                        class: "tooltip ",
+                        "data-tip": r#"{t!("clear_logs")}"#,
+                        button {
+                            class: "btn btn-xs btn-error btn-outline btn-square",
                             onclick: move |_| logs.clear(),
                             svg {
                                 class: "size-4",
@@ -124,12 +132,11 @@ pub fn ReceiverPage() -> Element {
                         }
                     }
                 }
-                div { class: "overflow-y-auto flex-1 mt-3",
+                div {
+                    class: "overflow-y-auto flex-1 mt-3",
                     onmounted: move |e| log_container.set(Some(e.data())),
                     for log in logs.iter() {
-                        p { class: "break-all whitespace-pre-wrap",
-                            "{log}"
-                        }
+                        p { class: "break-all whitespace-pre-wrap", "{log}" }
                     }
                 }
             }
