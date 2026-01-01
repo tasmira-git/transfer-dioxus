@@ -87,7 +87,6 @@ pub fn SenderPage() -> Element {
                             }
                             input {
                                 class: "checkbox checkbox-info checkbox-md",
-                                // class: "checkbox border-blue-500 text-blue-500 checkbox-md",
                                 r#type: "checkbox",
                                 id: "directory-upload",
                                 checked: enable_directory,

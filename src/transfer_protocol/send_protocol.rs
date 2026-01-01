@@ -80,9 +80,12 @@ impl SendProtocol {
 
         let mut file = std::fs::File::open(file_path)?;
 
+        self.writer.flush()?;
         self.writer.get_mut().start_monitor();
         std::io::copy(&mut file, &mut self.writer)?;
+        self.writer.flush()?;
         self.writer.get_mut().stop_monitor();
+
         Ok(())
     }
 }
